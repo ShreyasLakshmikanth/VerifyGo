@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #222; color: #fff; }
+        #reader { width: 100%; max-width: 500px; margin: 0 auto; background: #000; }
+        #result { margin-top: 20px; padding: 20px; font-size: 1.5em; font-weight: bold; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Ticket Scanner</h1>
+    <div id="reader"></div>
+    <div id="result">Ready to Scan...</div>
+
+    <script>
+        let isScanning = true;
+
+        function onScanSuccess(decodedText, decodedResult) {
+            if (!isScanning) return; 
+            
+            isScanning = false;
+            document.getElementById('result').innerText = "Verifying...";
+            document.getElementById('result').style.backgroundColor = "#555";
+
+            fetch('/validate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ qr_data: decodedText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerText = data.message;
+                resultDiv.style.backgroundColor = data.color;
+                
+                setTimeout(() => { 
+                    resultDiv.innerText = "Ready to Scan..."; 
+                    resultDiv.style.backgroundColor = "#222";
+                    isScanning = true; 
+                }, 3000);
+            })
+            .catch(err => {
+                console.error(err);
+                isScanning = true;
+            });
+        }
+
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
+    </script>
+</body>
+</html>
